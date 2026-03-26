@@ -1,12 +1,12 @@
 const express = require('express');
-const YTMusic = require('@codyduong/ytmusicapi').default;
+const YTMusic = require('@codyduong/ytmusicapi');
 const ytdl = require('@distube/ytdl-core');
 const cors = require('cors');
 
 const app = express();
 app.use(cors());
 
-// Initialize YTMusic (no need for .initialize() in this version)
+// Use the class directly
 const ytmusic = new YTMusic();
 
 // 1. Search Songs
@@ -15,12 +15,15 @@ app.get('/api/search', async (req, res) => {
     if (!query) return res.status(400).json({ error: 'Query required' });
 
     try {
-        // 'SONGS' filter ensures we get high quality audio tracks
-        const results = await ytmusic.search(query, 'SONGS');
+        // Try searching without filters first to ensure it works
+        const results = await ytmusic.search(query);
         res.json(results);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+        console.error('Search Error:', err);
+        res.status(500).json({ 
+            error: err.message,
+            tip: "If this is a 404, YouTube might be blocking Vercel. Try deploying to Render.com or Railway.app which have better success rates with YT Music."
+        });
     }
 });
 
@@ -42,12 +45,12 @@ app.get('/api/stream', async (req, res) => {
             res.status(404).json({ error: 'Stream not found' });
         }
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Stream error. YouTube might be rate-limiting." });
+        console.error('Stream Error:', err);
+        res.status(500).json({ error: "Stream error. YouTube is likely blocking the request." });
     }
 });
 
-app.get('/', (req, res) => res.send('YT Music API (Cody Duong version) is running!'));
+app.get('/', (req, res) => res.send('YT Music API is running! Try /api/search?query=Bairan'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server ready on port ${PORT}`));
